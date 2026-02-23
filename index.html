@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Competitividade</title>
+    <style>
+        /* Estilos básicos para deixar a página com visual limpo e profissional */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; }
+        h1 { text-align: center; color: #2c3e50; }
+        .container { display: flex; gap: 20px; max-width: 1000px; margin: 0 auto; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 100%; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #34495e; color: white; font-weight: bold; }
+        tr:hover { background-color: #f1f1f1; }
+        .erro { color: red; text-align: center; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>Relatório de Preços: Meu Restaurante vs Livemenu</h1>
+    
+    <div class="container">
+        <div class="card">
+            <h2>Meu Cardápio</h2>
+            <table id="tabela-meu">
+                <thead>
+                    <tr>
+                        <th>Produto</th>
+                        <th>Preço (R$)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h2>Concorrente (Livemenu)</h2>
+            <table id="tabela-conc">
+                <thead>
+                    <tr>
+                        <th>Produto</th>
+                        <th>Preço (R$)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Função Fetch: Vai buscar o arquivo dados.json na mesma pasta do site
+        fetch('dados.json')
+            .then(resposta => {
+                if (!resposta.ok) throw new Error('Arquivo JSON não encontrado');
+                return resposta.json(); // Converte o texto do arquivo em um objeto de dados
+            })
+            .then(dados => {
+                // Seleciona o corpo das tabelas no HTML
+                const corpoTabelaMeu = document.querySelector('#tabela-meu tbody');
+                const corpoTabelaConc = document.querySelector('#tabela-conc tbody');
+
+                // Preenche a tabela "meu"
+                dados.meu.forEach(item => {
+                    const linha = `<tr><td>${item.n}</td><td>R$ ${item.p.toFixed(2).replace('.', ',')}</td></tr>`;
+                    corpoTabelaMeu.innerHTML += linha;
+                });
+
+                // Preenche a tabela "conc"
+                dados.conc.forEach(item => {
+                    const linha = `<tr><td>${item.n}</td><td>R$ ${item.p.toFixed(2).replace('.', ',')}</td></tr>`;
+                    corpoTabelaConc.innerHTML += linha;
+                });
+            })
+            .catch(erro => {
+                // Se o arquivo dados.json ainda não existir, mostra um erro amigável na tela
+                console.error(erro);
+                document.body.innerHTML += `<p class="erro">Aguardando a primeira execução do sistema para gerar os dados. Verifique se o dados.json existe no repositório.</p>`;
+            });
+    </script>
+
+</body>
+</html>
