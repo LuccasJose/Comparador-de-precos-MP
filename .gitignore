@@ -1,5 +1,19 @@
 .env
 __pycache__/
-*.png
-*.xlsx
+*.py[cod]
 .venv/
+
+# Generated outputs (do not version)
+/dados.json
+/comparativo_precos.xlsx
+/dados_cache.json
+/token_usage.json
+
+# Also ignore if generated inside src/ by running from that directory
+/src/dados.json
+/src/comparativo_precos.xlsx
+/src/dados_cache.json
+/src/token_usage.json
+
+# Temporary screenshots for OCR
+temp_*.png

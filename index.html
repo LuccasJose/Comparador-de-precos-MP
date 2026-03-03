@@ -14,12 +14,21 @@
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
         th { background-color: #34495e; color: white; font-weight: bold; }
         tr:hover { background-color: #f1f1f1; }
-        .erro { color: red; text-align: center; font-weight: bold; }
+	        .erro { color: red; text-align: center; font-weight: bold; }
+	        .info { color: #34495e; text-align: center; font-weight: 600; }
+	        .hint { font-weight: 400; font-size: 0.95rem; color: #555; }
+	        #status { margin: 14px auto 0; max-width: 1000px; }
+	        #file-loader { display: none; margin: 10px auto 0; max-width: 1000px; text-align: center; }
     </style>
 </head>
 <body>
 
     <h1>Relatório de Preços: Meu Restaurante vs Livemenu</h1>
+	    <div id="status" class="info" style="display:none"></div>
+	    <div id="file-loader">
+	        <input id="file-input" type="file" accept="application/json" />
+	        <div class="hint">Selecione um <code>dados.json</code> local para carregar (útil quando o navegador bloqueia <code>fetch</code> em <code>file://</code>).</div>
+	    </div>
     
     <div class="container">
         <div class="card">
@@ -51,36 +60,160 @@
         </div>
     </div>
 
-    <script>
-        // Função Fetch: Vai buscar o arquivo dados.json na mesma pasta do site
-        fetch('dados.json')
-            .then(resposta => {
-                if (!resposta.ok) throw new Error('Arquivo JSON não encontrado');
-                return resposta.json(); // Converte o texto do arquivo em um objeto de dados
-            })
-            .then(dados => {
-                // Seleciona o corpo das tabelas no HTML
-                const corpoTabelaMeu = document.querySelector('#tabela-meu tbody');
-                const corpoTabelaConc = document.querySelector('#tabela-conc tbody');
+	    <script>
+	        const statusEl = document.getElementById('status');
+	        const fileLoaderEl = document.getElementById('file-loader');
+	        const fileInputEl = document.getElementById('file-input');
 
-                // Preenche a tabela "meu"
-                dados.meu.forEach(item => {
-                    const linha = `<tr><td>${item.n}</td><td>R$ ${item.p.toFixed(2).replace('.', ',')}</td></tr>`;
-                    corpoTabelaMeu.innerHTML += linha;
-                });
+	        function setStatus(html, kind = 'info') {
+	            statusEl.className = kind;
+	            statusEl.innerHTML = html;
+	            statusEl.style.display = 'block';
+	        }
 
-                // Preenche a tabela "conc"
-                dados.conc.forEach(item => {
-                    const linha = `<tr><td>${item.n}</td><td>R$ ${item.p.toFixed(2).replace('.', ',')}</td></tr>`;
-                    corpoTabelaConc.innerHTML += linha;
-                });
-            })
-            .catch(erro => {
-                // Se o arquivo dados.json ainda não existir, mostra um erro amigável na tela
-                console.error(erro);
-                document.body.innerHTML += `<p class="erro">Aguardando a primeira execução do sistema para gerar os dados. Verifique se o dados.json existe no repositório.</p>`;
-            });
-    </script>
+	        function clearStatus() {
+	            statusEl.style.display = 'none';
+	            statusEl.innerHTML = '';
+	        }
+
+	        function toNumberPrice(v) {
+	            if (typeof v === 'number' && Number.isFinite(v)) return v;
+	            if (typeof v !== 'string') return null;
+	            // Normaliza formatos comuns do OCR: "R$ 12,50", "12.50", "12,50", "242:98", etc.
+	            let cleaned = v
+	                .replace(/R\$\s*/gi, '')
+	                .replace(/:/g, '.')
+	                .trim();
+	
+	            // Se tiver virgula e ponto, assume ponto como milhar e virgula como decimal
+	            if (cleaned.includes(',') && cleaned.includes('.')) {
+	                cleaned = cleaned.replace(/\./g, '').replace(/,/g, '.');
+	            } else if (cleaned.includes(',')) {
+	                cleaned = cleaned.replace(/,/g, '.');
+	            }
+	
+	            cleaned = cleaned.replace(/[^0-9.\-]/g, '');
+	            const n = Number.parseFloat(cleaned);
+	            return Number.isFinite(n) ? n : null;
+	        }
+
+	        function formatBRL(n) {
+	            try {
+	                return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(n);
+	            } catch {
+	                return `R$ ${n.toFixed(2)}`.replace('.', ',');
+	            }
+	        }
+
+	        function normalizeItems(raw) {
+	            if (!Array.isArray(raw)) return [];
+	            return raw
+	                .map((it) => {
+	                    const name = (it && typeof it.n === 'string') ? it.n.trim() : '';
+	                    const price = toNumberPrice(it ? it.p : null);
+	                    return { n: name, p: price };
+	                })
+	                .filter((it) => it.n && it.p !== null);
+	        }
+
+	        function renderTable(items, tbody) {
+	            tbody.innerHTML = '';
+	            for (const item of items) {
+	                const tr = document.createElement('tr');
+	                const tdName = document.createElement('td');
+	                const tdPrice = document.createElement('td');
+	                tdName.textContent = item.n;
+	                tdPrice.textContent = formatBRL(item.p);
+	                tr.appendChild(tdName);
+	                tr.appendChild(tdPrice);
+	                tbody.appendChild(tr);
+	            }
+	        }
+
+	        function render(dados) {
+	            const corpoTabelaMeu = document.querySelector('#tabela-meu tbody');
+	            const corpoTabelaConc = document.querySelector('#tabela-conc tbody');
+
+	            const meu = normalizeItems(dados && dados.meu);
+	            const conc = normalizeItems(dados && dados.conc);
+
+	            renderTable(meu, corpoTabelaMeu);
+	            renderTable(conc, corpoTabelaConc);
+
+	            if (meu.length === 0 && conc.length === 0) {
+	                setStatus(
+	                    'O <code>dados.json</code> foi carregado, mas não há itens válidos para exibir. ' +
+	                    '<span class="hint">Verifique se ele contém listas <code>meu</code> e <code>conc</code> com objetos no formato {n, p}.</span>',
+	                    'erro'
+	                );
+	            } else {
+	                clearStatus();
+	            }
+	        }
+
+	        async function loadViaFetch() {
+	            // Cache-busting para evitar navegador servir um JSON antigo
+	            const url = new URL('dados.json', window.location.href);
+	            url.searchParams.set('t', String(Date.now()));
+	
+	            const resp = await fetch(url.toString(), { cache: 'no-store' });
+	            if (!resp.ok) {
+	                throw new Error(`HTTP_${resp.status}`);
+	            }
+	            return await resp.json();
+	        }
+
+	        function enableFileLoader() {
+	            fileLoaderEl.style.display = 'block';
+	            fileInputEl.addEventListener('change', async (ev) => {
+	                const file = ev.target.files && ev.target.files[0];
+	                if (!file) return;
+	                try {
+	                    const text = await file.text();
+	                    const data = JSON.parse(text);
+	                    render(data);
+	                } catch (e) {
+	                    console.error(e);
+	                    setStatus('Não foi possível ler o arquivo selecionado. Verifique se é um JSON válido.', 'erro');
+	                }
+	            });
+	        }
+
+	        (async function init() {
+	            // Observação importante: navegadores bloqueiam fetch() entre arquivos locais (file://)
+	            if (window.location.protocol === 'file:') {
+	                setStatus(
+	                    'Este dashboard foi aberto via <code>file://</code> e o navegador pode bloquear <code>fetch("dados.json")</code>. ' +
+	                    '<div class="hint">Recomendado: na raiz do projeto, rode <code>python -m http.server 8000</code> e acesse <code>http://localhost:8000</code>.</div>',
+	                    'erro'
+	                );
+	                enableFileLoader();
+	                return;
+	            }
+
+	            try {
+	                const dados = await loadViaFetch();
+	                render(dados);
+	            } catch (erro) {
+	                console.error(erro);
+	                if (String(erro && erro.message) === 'HTTP_404') {
+	                    setStatus(
+	                        'Não encontrei <code>dados.json</code> (404). ' +
+	                        '<span class="hint">Execute o script para gerar o arquivo na raiz do projeto e recarregue a página.</span>',
+	                        'erro'
+	                    );
+	                } else if (erro instanceof SyntaxError) {
+	                    setStatus('O arquivo <code>dados.json</code> existe, mas não é um JSON válido.', 'erro');
+	                } else {
+	                    setStatus(
+	                        'Falha ao carregar <code>dados.json</code>. ' +
+	                        '<span class="hint">Verifique a aba Network/Console (F12) para detalhes. Se estiver em um servidor, confirme que o arquivo está sendo servido junto do HTML.</span>',
+	                        'erro'
+	                    );
+	                }
+	            }
+	        })();
+	    </script>
 
 </body>
 </html>

@@ -31,6 +31,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Rodar testes unitarios (rapido, sem chamar APIs)
+        run: python -m unittest discover -s tests -p "test*.py" -v
+
       - name: Instalar navegador do Playwright (Chromium)
         run: python -m playwright install --with-deps chromium
 
