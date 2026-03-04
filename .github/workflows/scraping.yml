@@ -6,6 +6,11 @@ on:
     - cron: '0 8 * * 1'
   workflow_dispatch: # Adiciona um botão no GitHub para você rodar manualmente quando quiser
 
+# URLs dos restaurantes (altere aqui para trocar de concorrente)
+env:
+  URL_MEU: "https://livemenu.app/menu/64e37fc6a53f6d0056007d55"
+  URL_CONC: "https://www.vucafood.com.br/caseratto/39/cardapio-digital"
+
 jobs:
   atualizar-dados:
     runs-on: ubuntu-latest
@@ -21,11 +26,6 @@ jobs:
         with:
           python-version: '3.10' # Pode ajustar para a versão que você utiliza
 
-      - name: Instalar Tesseract OCR (com pacote para Português)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y tesseract-ocr tesseract-ocr-por
-
       - name: Instalar bibliotecas
         run: |
           python -m pip install --upgrade pip
@@ -39,9 +39,11 @@ jobs:
 
       - name: Executar o sistema
         env:
-          # Puxa a sua chave de API de forma segura
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }} 
-        run: python src/main.py
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python src/main.py \
+            --url-meu "${{ env.URL_MEU }}" \
+            --url-conc "${{ env.URL_CONC }}"
 
       - name: Salvar o novo dados.json no GitHub
         run: |
