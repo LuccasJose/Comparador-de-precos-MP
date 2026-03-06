@@ -78,6 +78,24 @@ class TestOCROptimizer(unittest.TestCase):
         self.assertIn("X-Tudo 16,00", resultado)
         self.assertIn("Batata frita R$ 12,50", resultado)
 
+    def test_extrair_itens_preco_com_contexto_prefere_nome_principal_antes_do_acompanhamento(self):
+        ocr = (
+            "Peito de Frango Grelhado (individual)\n"
+            "Acompanha: Arroz branco, feijão tropeiro e banana à milanesa.\n"
+            "R$ 71,06\n"
+        )
+        resultado = extrair_itens_preco_com_contexto(ocr, contexto_preco=1, juntar_par=True)
+
+        self.assertIn("Peito de Frango Grelhado (individual) R$ 71,06", resultado)
+        self.assertNotIn("Acompanha: Arroz branco, feijão tropeiro e banana à milanesa. R$ 71,06", resultado)
+
+    def test_extrair_itens_preco_com_contexto_remove_ruido_de_pedido_minimo(self):
+        ocr = "Pedido mín. R$ 50,00\nX-Tudo\nR$ 16,00\n"
+        resultado = extrair_itens_preco_com_contexto(ocr, contexto_preco=1, juntar_par=True)
+
+        self.assertNotIn("Pedido mín. R$ 50,00", resultado)
+        self.assertIn("X-Tudo R$ 16,00", resultado)
+
     def test_resumir_ocr_modo_itens_preco_preserva_contexto(self):
         ocr = "X-Tudo\n16,00\nBatata frita\nR$ 12,50\nOutro texto sem preço\n"
         resultado = resumir_ocr(ocr, max_linhas=100, modo="itens_preco", contexto_preco=1)

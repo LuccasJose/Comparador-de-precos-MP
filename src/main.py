@@ -45,7 +45,7 @@ def comparar(url_meu, url_conc, timeout_seconds=30, headless=True):
     print("Otimizando OCR para reduzir tokens...")
     ocr_max_linhas = int(os.getenv("OCR_MAX_LINHAS", "100"))
     ocr_modo = os.getenv("OCR_MODE", "itens_preco")
-    ocr_contexto_preco = int(os.getenv("OCR_PRECO_CONTEXTO", "1"))
+    ocr_contexto_preco = int(os.getenv("OCR_PRECO_CONTEXTO", "3"))
     ocr_min_itens_fallback = int(os.getenv("OCR_MIN_ITENS_FALLBACK", "1"))
 
     txt_meu_opt, txt_conc_opt, tokens_est_ocr = comparar_tamanho_ocr(
